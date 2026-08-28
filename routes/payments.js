@@ -6,7 +6,6 @@ const router = express.Router();
 
 const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN });
 
-// Crea una preferencia de pago para un pedido ya creado (estado pendiente_pago)
 router.post("/crear-preferencia/:pedidoId", express.json(), async (req, res) => {
   try {
     const pedido = db.prepare("SELECT * FROM pedidos WHERE id = ?").get(req.params.pedidoId);
@@ -41,7 +40,6 @@ router.post("/crear-preferencia/:pedidoId", express.json(), async (req, res) => 
   }
 });
 
-// Webhook: Mercado Pago notifica cuando cambia el estado de un pago
 router.post("/webhook", express.json(), async (req, res) => {
   try {
     const topic = req.query.topic || req.query.type;
@@ -63,8 +61,9 @@ router.post("/webhook", express.json(), async (req, res) => {
     res.sendStatus(200);
   } catch (e) {
     console.error("Error en webhook MP:", e);
-    res.sendStatus(200); // igual respondemos 200 para que MP no reintente en loop
+    res.sendStatus(200);
   }
 });
 
 module.exports = router;
+
