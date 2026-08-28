@@ -10,16 +10,18 @@ CREATE TABLE IF NOT EXISTS pedidos (
   telefono_cliente TEXT,
   archivo_original TEXT NOT NULL,
   archivo_path TEXT NOT NULL,
-  tipo_papel TEXT NOT NULL,        -- 'comun' | 'foto'
+  tipo_papel TEXT NOT NULL,        -- 'comun' | 'foto' | 'adhesivo'
   tamano_papel TEXT,               -- A4 | Carta | Oficio (si es comun)
   tamano_foto TEXT,                -- 5x5 | 10x15 | 13x18 | 21x29 (si es foto)
+  orientacion TEXT NOT NULL DEFAULT 'vertical', -- vertical | horizontal (si es foto)
+  paginas INTEGER NOT NULL DEFAULT 1, -- cantidad de páginas del archivo (1 si es imagen)
   color INTEGER NOT NULL,          -- 1 = color, 0 = blanco y negro
   copias INTEGER NOT NULL,
   doble_faz INTEGER NOT NULL DEFAULT 0,
   impresora_destino TEXT NOT NULL, -- L380 | L6490
   precio_total INTEGER NOT NULL,
   metodo_pago TEXT NOT NULL,       -- 'mercadopago' | 'efectivo'
-  estado TEXT NOT NULL DEFAULT 'pendiente_pago', 
+  estado TEXT NOT NULL DEFAULT 'pendiente_pago',
   -- estados: pendiente_pago | pendiente_efectivo | aprobado | impreso | cancelado
   mp_payment_id TEXT,
   creado_en TEXT NOT NULL DEFAULT (datetime('now')),
@@ -27,4 +29,22 @@ CREATE TABLE IF NOT EXISTS pedidos (
 );
 `);
 
+// Tabla simple de configuración (clave/valor), para el horario de atención
+// y el horario específico del papel adhesivo, editables desde el panel admin.
+db.exec(`
+CREATE TABLE IF NOT EXISTS configuracion (
+  clave TEXT PRIMARY KEY,
+  valor TEXT NOT NULL
+);
+`);
+
+// Por si la tabla "pedidos" ya existía sin estas columnas (bases creadas antes de estos cambios)
+try {
+  db.exec(`ALTER TABLE pedidos ADD COLUMN orientacion TEXT NOT NULL DEFAULT 'vertical'`);
+} catch (e) {}
+try {
+  db.exec(`ALTER TABLE pedidos ADD COLUMN paginas INTEGER NOT NULL DEFAULT 1`);
+} catch (e) {}
+
 module.exports = db;
+
