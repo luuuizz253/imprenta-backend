@@ -1,43 +1,50 @@
-﻿// =========================================================
+// =========================================================
 // TABLA DE PRECIOS - EDITÁ ESTOS VALORES SEGÚN TUS COSTOS
 // Todos los precios están en ARS (pesos argentinos)
 // =========================================================
 
-// Papel común (documentos): precio por hoja
 const PRECIO_PAPEL_COMUN = {
-  A4:     { bn: 50,  color: 100 },
-  Carta:  { bn: 50,  color: 100 },
+  A4:     { bn: 50,  color: 150 },
+  Carta:  { bn: 50,  color: 150 },
   Oficio: { bn: 60,  color: 170 },
 };
 
-// Papel fotográfico: precio por copia (según tamaño)
-// La foto en B&N normalmente casi no se usa, pero se deja habilitado por si acaso.
 const PRECIO_PAPEL_FOTO = {
-  "5x5":   { bn: 30,  color: 35 },
-  "10x15": { bn: 120,  color: 130 },
-  "13x18": { bn: 400,  color: 450 },
+  "5x5":   { bn: 300,  color: 350 },
+  "10x15": { bn: 450,  color: 550 },
+  "13x18": { bn: 700,  color: 850 },
   "21x29": { bn: 500,  color: 500 }, // A4 fotográfico
 };
 
-// Descuento en la segunda cara cuando se imprime a doble faz (solo L6490)
-const FACTOR_DOBLE_FAZ = 0.8; // la 2da cara sale al 80% del precio de una hoja
+// Papel adhesivo: precio por hoja
+const PRECIO_PAPEL_ADHESIVO = {
+  A4: { bn: 300, color: 450 },
+};
 
-// Regla simple: fotos → L380. Documentos/papel común (y doble faz) → L6490.
+const FACTOR_DOBLE_FAZ = 0.8;
+
+// Regla simple: fotos y adhesivo → L380. Documentos/papel común → L6490.
 function elegirImpresora({ tipoPapel }) {
-  if (tipoPapel === "foto") return "L380";
+  if (tipoPapel === "foto" || tipoPapel === "adhesivo") return "L380";
   return "L6490";
 }
 
-function calcularPrecio({ tipoPapel, tamanoPapel, tamanoFoto, color, copias, dobleFaz }) {
+function calcularPrecio({ tipoPapel, tamanoPapel, tamanoFoto, color, copias, dobleFaz, paginas }) {
   copias = Number(copias) || 1;
+  paginas = Number(paginas) || 1;
   let precioUnitario;
 
   if (tipoPapel === "foto") {
     const tabla = PRECIO_PAPEL_FOTO[tamanoFoto];
     if (!tabla) throw new Error("Tamaño de foto inválido");
     precioUnitario = color ? tabla.color : tabla.bn;
-    // doble faz no aplica a fotos
-    return { precioUnitario, total: precioUnitario * copias, impresora: elegirImpresora({ tipoPapel, tamanoFoto, dobleFaz: false }) };
+    return { precioUnitario, total: precioUnitario * copias, impresora: elegirImpresora({ tipoPapel }) };
+  }
+
+  if (tipoPapel === "adhesivo") {
+    const tabla = PRECIO_PAPEL_ADHESIVO[tamanoPapel] || PRECIO_PAPEL_ADHESIVO.A4;
+    precioUnitario = color ? tabla.color : tabla.bn;
+    return { precioUnitario, total: precioUnitario * copias, impresora: elegirImpresora({ tipoPapel }) };
   }
 
   // papel común / documento
@@ -45,17 +52,21 @@ function calcularPrecio({ tipoPapel, tamanoPapel, tamanoFoto, color, copias, dob
   if (!tabla) throw new Error("Tamaño de papel inválido");
   precioUnitario = color ? tabla.color : tabla.bn;
 
-  let total;
+  let costoPorCopia;
   if (dobleFaz) {
-    // cada "copia" son 2 caras: 1 cara a precio normal + 1 cara al factor de descuento
+    const paresCompletos = Math.floor(paginas / 2);
+    const hojaImpar = paginas % 2;
     const precioParDeCaras = precioUnitario + precioUnitario * FACTOR_DOBLE_FAZ;
-    total = precioParDeCaras * copias;
+    costoPorCopia = paresCompletos * precioParDeCaras + hojaImpar * precioUnitario;
   } else {
-    total = precioUnitario * copias;
+    costoPorCopia = paginas * precioUnitario;
   }
 
-  const impresora = elegirImpresora({ tipoPapel, tamanoFoto: null, dobleFaz });
+  const total = costoPorCopia * copias;
+  const impresora = elegirImpresora({ tipoPapel });
   return { precioUnitario, total: Math.round(total), impresora };
 }
 
-module.exports = { calcularPrecio, elegirImpresora, PRECIO_PAPEL_COMUN, PRECIO_PAPEL_FOTO };
+module.exports = { calcularPrecio, elegirImpresora, PRECIO_PAPEL_COMUN, PRECIO_PAPEL_FOTO, PRECIO_PAPEL_ADHESIVO };
+﻿
+
